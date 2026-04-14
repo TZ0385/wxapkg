@@ -15,13 +15,10 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: wxapkg-gui-windows-x64
-            extension: .exe
+            upload_name: wxapkg-gui-windows-x64.exe
           - os: macos-latest
-            artifact_name: wxapkg-gui-macos-x64
-            extension: ''
-          - os: macos-latest
-            artifact_name: wxapkg-gui-macos-arm64
-            extension: ''
+            artifact_name: wxapkg-gui-darwin
+            upload_name: wxapkg-gui-darwin.app.zip
 
     runs-on: ${{ matrix.os }}
 
@@ -37,7 +34,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -51,49 +48,36 @@ jobs:
         run: wails build
         working-directory: .
 
-      - name: Build macOS x64
-        if: matrix.os == 'macos-latest' && matrix.artifact_name == 'wxapkg-gui-macos-x64'
-        env:
-          MACOSX_DEPLOYMENT_TARGET: '10.13'
-        run: wails build -platform darwin/amd64
-        working-directory: .
-
-      - name: Build macOS ARM64
-        if: matrix.os == 'macos-latest' && matrix.artifact_name == 'wxapkg-gui-macos-arm64'
-        env:
-          MACOSX_DEPLOYMENT_TARGET: '10.13'
-        run: wails build -platform darwin/arm64
-        working-directory: .
-
       - name: Rename artifact (Windows)
         if: matrix.os == 'windows-latest'
         shell: bash
         run: mv build/bin/wxapkg-gui.exe build/bin/${{ matrix.artifact_name }}.exe
 
-      - name: Rename artifact (macOS)
+      - name: Build and zip macOS
         if: matrix.os == 'macos-latest'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '10.13'
         shell: bash
-        run: mv build/bin/wxapkg-gui.app "build/bin/${{ matrix.artifact_name }}.app"
+        run: |
+          wails build -platform darwin/universal
+          ditto -c -k --keepParent build/bin/wxapkg-gui.app build/bin/${{ matrix.upload_name }}
+          rm -rf build/bin/wxapkg-gui.app
 
       - name: Download UPX
         if: matrix.os == 'windows-latest'
-        shell: bash
         run: |
-          UPX_VERSION="4.2.2"
-          curl -LO https://github.com/upx/upx/releases/download/v${UPX_VERSION}/upx-${UPX_VERSION}-win64.zip
-          unzip upx-${UPX_VERSION}-win64.zip
+          curl -LO https://github.com/upx/upx/releases/download/v4.2.2/upx-4.2.2-win64.zip
+          tar -xf upx-4.2.2-win64.zip
 
       - name: Compress with UPX (Windows only)
         if: matrix.os == 'windows-latest'
-        run: ./upx-${UPX_VERSION}-win64/upx.exe --best --lzma build/bin/${{ matrix.artifact_name }}.exe
-        env:
-          UPX_VERSION: "4.2.2"
+        run: .\upx-4.2.2-win64\upx.exe --best --lzma build\bin\${{ matrix.artifact_name }}.exe
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: build/bin/${{ matrix.artifact_name }}${{ matrix.extension }}
+          path: build/bin/${{ matrix.upload_name }}
 
   publish:
     needs: release
@@ -107,17 +91,10 @@ jobs:
         with:
           path: artifacts
 
-      - name: Create DMG (macOS x64)
-        if: false  # 需要手动创建或使用 create-dmg 工具
-        run: |
-          APP_NAME="wxapkg-gui-macos-x64.app"
-          DMG_NAME="wxapkg-gui-macos-x64.dmg"
-          hdiutil create -volname "$APP_NAME" -srcfolder "artifacts/wxapkg-gui-macos-x64/$APP_NAME" -ov -format UDZO "$DMG_NAME"
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          draft: false
           prerelease: false
           generate_release_notes: true
           files: artifacts/**/*
