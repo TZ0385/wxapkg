@@ -122,7 +122,7 @@ watch(visible, (newValue) => {
       <div class="log-box" v-if="!loading && scanResult?.Logs?.trim()">
         <button class="log-toggle" @click="logsExpanded = !logsExpanded">
           <i class="pi" :class="logsExpanded ? 'pi-chevron-up' : 'pi-chevron-down'"></i>
-          {{ logsExpanded ? '收起' : '展开' }}检测日志
+          {{ logsExpanded ? '收起' : '展开' }}检测日志 · 未找到目录？请先在微信中打开任意小程序触发目录创建
         </button>
         <pre v-if="logsExpanded" class="log-content">{{ scanResult.Logs }}</pre>
       </div>

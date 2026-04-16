@@ -16,7 +16,7 @@
 
 ## ⚒️ 安装
 
-直接从 [Releases](https://github.com/wux1an/wxapkg/releases) 下载对应平台的预编译版本，双击运行即可。
+直接从 [Releases](https://github.com/wux1an/wxapkg/releases/latest) 下载对应平台的预编译版本，双击运行即可。
 
 ## 🛠️ 自行编译
 

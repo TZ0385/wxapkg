@@ -42,6 +42,7 @@ function openFolder(folder: string) {
 function confirmScan(path: ScanPathItem) {
   AppService.ScanWxapkgItem(path.path, path.scan)
     .then((v: WxapkgItem[]) => {
+      if (!v) v = []
       wxapkgItems.value = v
       toast.info('扫描小程序完成', `共 ${v.length} 个结果`)
     })

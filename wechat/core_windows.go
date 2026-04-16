@@ -21,50 +21,44 @@ func (m *windowsPlatform) GetDefaultPaths() PathScanResult {
 
 	var paths []string
 
-	// ── Step 1: v4 根目录 ──
+	// ── Step 1: 微信 v4 根目录 ──
 	appDataDir, _ := os.UserConfigDir()
 	v4Path := filepath.Join(appDataDir, "Tencent", "xwechat", "radium", "Applet", "packages")
-	log(fmt.Sprintf("1. 检测 v4 根目录\n   路径: %s", v4Path))
 	if fileInfo, err := os.Stat(v4Path); err == nil && fileInfo.IsDir() {
-		log("   结果: 有效")
+		log(fmt.Sprintf("1. 【成功】检测微信 v4 (4.x 版本) - 成功\n   路径: %s", v4Path))
 		paths = append(paths, v4Path)
 	} else {
-		log("   结果: 目录不存在")
+		log(fmt.Sprintf("1. 【失败】检测微信 v4 (4.x 版本) - 目录不存在\n   路径: %s", v4Path))
 	}
 
-	// ── Step 2: v3 注册表 ──
-	log("2. 读取 v3 注册表\n   键: HKCU\\Software\\Tencent\\WeChat\\FileSavePath")
+	// ── Step 2: 微信 v3 注册表 ──
 	wechatKey, err := registry.OpenKey(registry.CURRENT_USER, `Software\Tencent\WeChat`, registry.QUERY_VALUE)
 	if err != nil {
-		log("   结果: 读取失败")
+		log("2. 【失败】检测微信 v3 (3.x 版本) - 未找到注册表项\n   键: HKCU\\Software\\Tencent\\WeChat\\FileSavePath")
 	} else {
 		defer wechatKey.Close()
 		value, _, err := wechatKey.GetStringValue("FileSavePath")
 		if err != nil {
-			log("   结果: 未找到该值")
+			log("2. 【失败】检测微信 v3 (3.x 版本) - 未找到注册表值\n   键: HKCU\\Software\\Tencent\\WeChat\\FileSavePath")
 		} else {
-			log(fmt.Sprintf("   原始值: %q", value))
 			if value == "MyDocument:" {
 				value = filepath.Join(os.Getenv("USERPROFILE"), "Documents")
-				log(fmt.Sprintf("   转换值: %s", value))
 			}
 			v3Path := filepath.Join(value, "WeChat Files")
-			log(fmt.Sprintf("   最终路径: %s", v3Path))
 			if fileInfo, err := os.Stat(v3Path); err == nil && fileInfo.IsDir() {
-				log("   结果: 有效")
+				log(fmt.Sprintf("2. 【成功】检测微信 v3 (3.x 版本) - 成功\n   键: HKCU\\Software\\Tencent\\WeChat\\FileSavePath\n   路径: %s", v3Path))
 				paths = append(paths, v3Path)
 			} else {
-				log("   结果: 目录不存在")
+				log(fmt.Sprintf("2. 【失败】检测微信 v3 (3.x 版本) - 目录不存在\n   键: HKCU\\Software\\Tencent\\WeChat\\FileSavePath\n   路径: %s", v3Path))
 			}
 		}
 	}
 
-	// ── Step 3: v4 users ──
+	// ── Step 3: 微信 v4 多用户 ──
 	usersDir := filepath.Join(appDataDir, "Tencent", "xwechat", "radium", "users")
-	log(fmt.Sprintf("3. 扫描 v4 用户目录\n   路径: %s", usersDir))
 	entries, err := os.ReadDir(usersDir)
 	if err != nil || entries == nil {
-		log("   结果: 未找到")
+		log(fmt.Sprintf("3. 【失败】检测微信 v4 多用户 (4.x 版本) - 目录不存在\n   路径: %s", usersDir))
 	} else {
 		var found []string
 		for _, entry := range entries {
@@ -78,9 +72,9 @@ func (m *windowsPlatform) GetDefaultPaths() PathScanResult {
 			}
 		}
 		if len(found) == 0 {
-			log("   结果: 未找到有效用户")
+			log(fmt.Sprintf("3. 【失败】检测微信 v4 多用户 (4.x 版本) - 未找到有效用户\n   路径: %s", usersDir))
 		} else {
-			log(fmt.Sprintf("   有效用户: %v", found))
+			log(fmt.Sprintf("3. 【成功】检测微信 v4 多用户 (4.x 版本) - 成功\n   路径: %s\n   有效用户: %s", usersDir, strings.Join(found, ", ")))
 		}
 	}
 
